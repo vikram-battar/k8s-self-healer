@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest tests/ -v
+      - run: python -m py_compile $(find src tests -name "*.py")
+      - run: python -c "import yaml, glob; [list(yaml.safe_load_all(open(f))) for f in glob.glob('**/*.y*ml', recursive=True) if '.git' not in f]"
+      - run: PYTHONPATH=src python -m self_healer scan --snapshot examples/snapshot.json
+      - run: PYTHONPATH=src python -m self_healer run --policies examples/policies.yaml --snapshot examples/snapshot.json

@@ -1,0 +1,40 @@
+# Sample self-healer policy config.
+# Detectors: crashloop, oomkilled, failed_job, pending, failed_rollout
+# Actions: delete_pod, rollback_deployment, scale_deployment, cordon_node, annotate
+
+global:
+  dry_run: true          # nothing mutates unless --live is passed
+  max_actions_per_hour: 20
+  default_cooldown_minutes: 15
+
+policies:
+  - name: restart-crashloop-pods
+    match:
+      detector: crashloop
+    action:
+      type: delete_pod   # the controller recreates it; the healer never patches containers directly
+    cooldown_minutes: 30
+    exclude_namespaces: [kube-system]
+
+  - name: restart-oomkilled-pods
+    match:
+      detector: oomkilled
+    action:
+      type: delete_pod
+    cooldown_minutes: 30
+    exclude_namespaces: [kube-system]
+
+  - name: rollback-failed-deployments
+    match:
+      detector: failed_rollout
+    action:
+      type: rollback_deployment
+    cooldown_minutes: 60
+    namespaces: [default, staging]
+
+  - name: annotate-failed-jobs
+    match:
+      detector: failed_job
+    action:
+      type: annotate     # jobs get investigated, not auto-retried — deleting them loses the evidence
+    cooldown_minutes: 120

@@ -1,0 +1,2 @@
+pyyaml>=6.0
+# kubernetes>=28.0  # optional — only needed for --cluster mode against a real cluster
